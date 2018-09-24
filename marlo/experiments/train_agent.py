@@ -19,6 +19,23 @@ from datetime import datetime
 from tb_chainer import utils, SummaryWriter
 
 
+# By default all experiment logging is relative to the current directory.
+_log_dir = "."
+
+
+def set_log_base_dir(log_dir):
+    """Change the default directory for experiment logs & results."""
+    global _log_dir
+    if log_dir != '' and not log_dir.endswith('/'):
+        _log_dir = log_dir + '/'
+    else:
+        _log_dir = log_dir
+
+
+def get_log_base_dir():
+    return _log_dir
+
+
 def save_agent_replay_buffer(agent, t, outdir, suffix='', logger=None):
     logger = logger or logging.getLogger(__name__)
     filename = os.path.join(outdir, '{}{}.replay.pkl'.format(t, suffix))
@@ -41,8 +58,9 @@ def train_agent(agent, env, steps, outdir, max_episode_len=None,
     # Use time string and agent class name as file name identifiers
     timestr = time.strftime("%Y%m%d-%H%M%S")
     agentClassName = agent.__class__.__name__[:10]
-    writer = SummaryWriter(r"tensorboard/tensorBoard_exp_"+timestr+"_"+agentClassName)
-    testLog = open("logging/step_rewardLog_"+timestr+"_"+agentClassName+".txt","w") 
+    log_dir = get_log_base_dir()
+    writer = SummaryWriter(log_dir + "tensorboard/tensorBoard_exp_"+timestr+"_"+agentClassName)
+    testLog = open(log_dir + "logging/step_rewardLog_"+timestr+"_"+agentClassName+".txt", "w")
 
     episode_r = 0
     episode_idx = 0
