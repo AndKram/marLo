@@ -17,6 +17,9 @@
   </About>
   <ModSettings>
     <MsPerTick> {{ params.tick_length }} </MsPerTick>
+    {% if params.prioritise_offscreen_rendering %}
+      <PrioritiseOffscreenRendering>true</PrioritiseOffscreenRendering>
+    {% endif %}    
   </ModSettings>
   <ServerSection>
     <ServerInitialConditions>
@@ -135,6 +138,7 @@
             <command>attack</command>
           </ModifierList>
       </DiscreteMovementCommands>
+      <MissionQuitCommands/>
       <ObservationFromNearbyEntities>
         <Range name="entities" xrange="8" yrange="2" zrange="6"/>
       </ObservationFromNearbyEntities>

@@ -15,9 +15,10 @@ join the game as separate agents.
   $MALMO_MINECRAFT_ROOT/launchClient.sh -port 10000
   $MALMO_MINECRAFT_ROOT/launchClient.sh -port 10001
 
-.. Note:: 
-  In case of ``Windows``, you can use ``%%MALMO_MINECRAFT_ROOT%%`` instead.
-  
+  .. Note:: 
+      In case of ``Windows``, you can instead use |
+      ``cd %MALMO_MINECRAFT_ROOT`` |
+      ``launchClient.bat`` |  
 
 - **Create Game**
 
@@ -71,10 +72,15 @@ join the game as separate agents.
   :lineno-start: 28
 
   # Run agent-0
-  run_agent(join_tokens[0])
+  thread_handler_0, _ = run_agent(join_tokens[0])
   # Run agent-1
-  run_agent(join_tokens[1])
-  
+  thread_handler_1, _ = run_agent(join_tokens[1])
+
+  # Wait for both the threads to complete execution
+  thread_handler_0.join()
+  thread_handler_1.join()
+
+  print("Episode Run Complete")
 
 Example Code
 -------------
@@ -114,8 +120,14 @@ Example Code
           print("done:", done)
           print("info", info)
       env.close()
-      
+  
   # Run agent-0
-  run_agent(join_tokens[0])
+  thread_handler_0, _ = run_agent(join_tokens[0])
   # Run agent-1
-  run_agent(join_tokens[1])          
+  thread_handler_1, _ = run_agent(join_tokens[1])
+  
+  # Wait for both the threads to complete execution
+  thread_handler_0.join()
+  thread_handler_1.join()
+  
+  print("Episode Run Complete")

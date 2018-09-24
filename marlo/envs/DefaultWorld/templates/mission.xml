@@ -6,7 +6,9 @@
 
         <ModSettings>
             <MsPerTick>{{ params.tick_length }}</MsPerTick>
-            <PrioritiseOffscreenRendering> true</PrioritiseOffscreenRendering>
+            {% if params.prioritise_offscreen_rendering %}
+              <PrioritiseOffscreenRendering>true</PrioritiseOffscreenRendering>
+            {% endif %}
         </ModSettings>
 
         <ServerSection>
@@ -24,6 +26,7 @@
             </AgentStart>
             <AgentHandlers>
                 <ContinuousMovementCommands/>
+                <MissionQuitCommands/>
                 <ObservationFromFullStats/>
                 <VideoProducer want_depth="false">
                    <Width>480</Width>

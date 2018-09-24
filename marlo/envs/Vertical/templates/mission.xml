@@ -6,7 +6,9 @@
 
   <ModSettings>
       <MsPerTick>{{ params.tick_length }}</MsPerTick>
-      <PrioritiseOffscreenRendering>true</PrioritiseOffscreenRendering>
+      {% if params.prioritise_offscreen_rendering %}
+        <PrioritiseOffscreenRendering>true</PrioritiseOffscreenRendering>
+      {% endif %}
   </ModSettings>
 
   <ServerSection>
@@ -67,6 +69,7 @@
           <command>attack</command>
         </ModifierList>
       </ContinuousMovementCommands>
+      <MissionQuitCommands/>
       <RewardForMissionEnd rewardForDeath="-10000">
         <Reward description="found_goal" reward="8000" />
         <Reward description="out_of_time" reward="-1000" />
