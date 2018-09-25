@@ -211,20 +211,23 @@ class MarloEnvBuilderBase(gym.Env):
 
             :param recordMP4: If a MP4 should be recorded in the ``MissionRecord``, and if so, the specifications as : ``[frame_rate, bit_rate]``.  (Default : ``None``)
             :type recordMP4: list 
-            
+
             :param gameMode: The Minecraft gameMode for this particular game. One of ``['spectator', 'creative', 'survival']``. (Default: ``survival``)
             :type gameMode: str
-            
+
             :param forceWorldReset: Force world reset on every reset. Makes sense only in case of environments with inherent stochasticity (Default: ``False``)
             :type forceWorldReset: bool
             
             :param turn_based: Specifies if the current game is a turn based game. (Default : ``False``)
             :type turn_based: bool
 
-            :param comp_all_commands: Specifies the superset of allowed commands in Marlo competition. (Default : ``None``)
+            :param comp_all_commands: Specifies the superset of allowed commands in Marlo competition. (Default : ``['move', "turn", "use", "attack"]``)
             :type comp_all_commands: list of strings
 
-            :param kill_clients_after_num_rounds: Call kill client on reset after given number of resets. (Default : ``None``)
+            :param suppress_info: Supresses extra game params in the info response. The grader will always have this as ``True``. (Default: ``True``)
+            :type suppress_info: bool
+
+            :param kill_clients_after_num_rounds: Call kill client on reset after given number of resets. (Default : ``250``)
             :type kill_clients_after_num_rounds: int
 
             :param kill_clients_retry: Call kill client on mission start failure and retry N times. (Default : ``0``)
@@ -264,8 +267,9 @@ class MarloEnvBuilderBase(gym.Env):
                  gameMode="survival",
                  forceWorldReset=True,
                  turn_based=False,
-                 comp_all_commands=None,  # Override to specify the full set of allowed competition commands.
-                 kill_clients_after_num_rounds=None,
+                 comp_all_commands=['move', "turn", "use", "attack"],  # Override to specify the full set of allowed competition commands.
+                 suppress_info=True,
+                 kill_clients_after_num_rounds=250,
                  kill_clients_retry=0
             )
         return self._default_base_params
@@ -380,7 +384,7 @@ class MarloEnvBuilderBase(gym.Env):
             
             :param params: Marlo Game Parameters as described in :meth:`default_base_params`
             :type params: dict
-        """                
+        """
         ############################################################
         # Setup Action Space
         ############################################################
@@ -514,6 +518,10 @@ class MarloEnvBuilderBase(gym.Env):
         ############################################################
         self.mission_record_spec = MalmoPython.MissionRecordSpec() # empty
         if params.recordDestination:
+            if not params.recordDestination.endswith(".tgz"):
+                raise Exception("Invalid recordDestination provided"
+                                "recordDestination should be a valid path ending"
+                                " with .tgz ")
             self.mission_record_spec.setDestination(params.recordDestination)
             if params.recordRewards:
                 self.mission_record_spec.recordRewards()
@@ -643,7 +651,7 @@ class MarloEnvBuilderBase(gym.Env):
                 return self._reset()
             except MalmoPython.MissionException:
                 self._kill_clients(True)
-
+        
     def _reset(self):
         self._rounds += 1
         # Kill clients after configured number of rounds.
@@ -703,6 +711,10 @@ class MarloEnvBuilderBase(gym.Env):
 
                 logger.info("Mission Running")
                 frame = self._get_video_frame(world_state)
+
+                # Notify Evaluation System, if applicable
+                marlo.CrowdAiNotifier._env_reset()
+                
                 return frame
 
             except Exception as e:
@@ -749,7 +761,7 @@ class MarloEnvBuilderBase(gym.Env):
             missed = world_state.number_of_observations_since_last_state \
                     - len(world_state.observations) - self.params.skip_steps
             if missed > 0:
-                logger.warn("Agent missed %d observation(s).", missed)
+                logger.info("Agent missed %d observation(s).", missed)
             assert len(world_state.observations) == 1
             return json.loads(world_state.observations[0].text)
         else:
@@ -795,7 +807,7 @@ class MarloEnvBuilderBase(gym.Env):
                     _commands
                     ))
 
-    def step(self, action):
+    def step_wrapper(self, action):
         world_state = self.agent_host.peekWorldState()
         if world_state.is_mission_running:
             self._take_action(action)
@@ -842,7 +854,29 @@ class MarloEnvBuilderBase(gym.Env):
         info['mission_control_messages'] = [msg.text for msg in world_state.mission_control_messages] # noqa: E501
         info['observation'] = self._get_observation(world_state)
 
+        if self.params.suppress_info:
+            """
+            Clear info variable to not leak in game variables
+            """
+            info = {}
+
+        # Notify evaluation system, if applicable
+        # marlo.CrowdAiNotifier._env_action(action)
+        marlo.CrowdAiNotifier._step_reward(reward)
+        if done:
+            marlo.CrowdAiNotifier._episode_done()
+
         return image, reward, done, info
+
+    def step(self, action):
+        """
+            Helps wrap the actual step function to catch relevant errors
+        """
+        try:
+            return self.step_wrapper(action)
+        except Exception as e:
+            marlo.CrowdAiNotifier._env_error(str(e))
+            raise e
 
     def render(self, mode='rgb_array', close=False):
         if mode == "rgb_array":
