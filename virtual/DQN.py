@@ -29,6 +29,8 @@ parser = argparse.ArgumentParser(description='chainerrl dqn')
 parser.add_argument('--n_hidden_channels', type=int, default=50, help='the number of hidden channels')
 parser.add_argument('--n_hidden_layers', type=int, default=1, help='the number of hidden layers')
 parser.add_argument('--results_dir', type=str, default="results", help='the results output dir')
+parser.add_argument('--save_dir', type=str, default=None, help='the dir to save to or none')
+parser.add_argument('--load_dir', type=str, default=None, help='the dir to save to or none.')
 args = parser.parse_args()
 
 # Tweakable parameters
@@ -145,6 +147,10 @@ agent = DQN(
     episodic_update_len=16
 )
 
+if args.load_dir:
+    print("Loading model")
+    agent.load(args.load_dir)
+
 # Start training
 experiments.train_agent_with_evaluation(
     agent=agent,
@@ -156,6 +162,10 @@ experiments.train_agent_with_evaluation(
     outdir=out_dir,
     max_episode_len=timestep_limit
 )
+
+if args.save_dir:
+    print("Saving model")
+    agent.save(args.save_dir)
 
 # Draw the computational graph and save it in the output directory.
 chainerrl.misc.draw_computational_graph(
