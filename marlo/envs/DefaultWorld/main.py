@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import marlo
 from marlo import MarloEnvBuilderBase
-from marlo import MalmoPython
 
 
 import os
@@ -11,20 +10,20 @@ from pathlib import Path
 class MarloEnvBuilder(MarloEnvBuilderBase):
     """
     Description: 
-		This environment thrusts the agent into a normal, random Minecraft world. The seed is
-		generated randomly, therefore the location is not always the same. The goal is to find
-		a gold/diamond/redstone block in time. 
-		
-	Actions available:
-		Forward/Backward
-		Turning
-		
-	Rewards:
-		1000 points for finding the goal
-		-1000 points for running out of time
-		-10000 points for death
+                This environment thrusts the agent into a normal, random Minecraft world. The seed is
+                generated randomly, therefore the location is not always the same. The goal is to find
+                a gold/diamond/redstone block in time. 
+                
+        Actions available:
+                Forward/Backward
+                Turning
+                
+        Rewards:
+                1000 points for finding the goal
+                -1000 points for running out of time
+                -10000 points for death
     """
-	   
+           
     def __init__(self, extra_params={}):
         super(MarloEnvBuilder, self).__init__(
                 templates_folder = os.path.join(
@@ -55,5 +54,4 @@ if __name__ == "__main__":
     print(env_builder.params)
     print(env_builder.params.experiment_id)
     mission_xml = env_builder.render_mission_spec()
-    mission_spec = MalmoPython.MissionSpec(mission_xml, True)
-    print(mission_spec.getSummary())
+    mission_spec = mission_xml

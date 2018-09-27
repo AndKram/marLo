@@ -9,20 +9,6 @@ import tempfile
 import logging
 logger = logging.getLogger(__name__)
 
-try:
-    import malmo.MalmoPython as MalmoPython
-except ImportError as e:
-    err = e
-    try:
-        import MalmoPython
-    except ImportError:
-        raise gym.error.DependencyNotInstalled(
-                        "{}.\n Malmo doesn't seem to be installed."
-                        "Please install Malmo from GitHub or with \n"
-                        "> conda install -c crowdai malmo \n"
-                        " OR \n"
-                        "> pip3 install malmo \n".format(err))
-
 
 from gym.envs.registration import register
 from marlo.base_env_builder import MarloEnvBuilderBase

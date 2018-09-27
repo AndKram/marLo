@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import marlo
 from marlo import MarloEnvBuilderBase
-from marlo import MalmoPython
 
 
 import os
@@ -18,15 +17,15 @@ class MarloEnvBuilder(MarloEnvBuilderBase):
         
     Actions available:
         Move
-		Jumpmove
-		Strafe
-		Turn
-		Movenorth, Moveeast, Movesouth, Movewest
-		Jumpnorth, Jumpeast, Jumpsouth, Jumpeast
-		Jump
-		Look
-		Use
-		Jumpuse
+                Jumpmove
+                Strafe
+                Turn
+                Movenorth, Moveeast, Movesouth, Movewest
+                Jumpnorth, Jumpeast, Jumpsouth, Jumpeast
+                Jump
+                Look
+                Use
+                Jumpuse
         
     Rewards:
         -100 points for falling in lava
@@ -71,5 +70,4 @@ if __name__ == "__main__":
     print(env_builder.params)
     print(env_builder.params.experiment_id)
     mission_xml = env_builder.render_mission_spec()
-    mission_spec = MalmoPython.MissionSpec(mission_xml, True)
-    print(mission_spec.getSummary())
+    mission_spec = mission_xml

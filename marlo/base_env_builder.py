@@ -4,8 +4,8 @@ import json
 import gym
 import numpy as np
 import marlo
-from marlo import MalmoPython
-import marlo.commands
+import malmoenv
+import malmoenv.commands
 import uuid
 import hashlib
 import base64
@@ -28,32 +28,6 @@ class dotdict(dict):
     __delattr__ = dict.__delitem__
 
 
-class TurnState(object):
-    def __init__(self):
-        self._turn_key = None
-        self._has_played = False
-
-    def update(self, key):
-        self._has_played = False
-        self._turn_key = key
-
-    @property
-    def can_play(self):
-        return self._turn_key is not None and not self._has_played
-
-    @property
-    def key(self):
-        return self._turn_key
-
-    @property
-    def has_played(self):
-        return self._has_played
-
-    @has_played.setter
-    def has_played(self, value):
-        self._has_played = bool(value)
-
-
 class MarloEnvBuilderBase(gym.Env):
     """Base class for all Marlo environment builders
         
@@ -71,13 +45,11 @@ class MarloEnvBuilderBase(gym.Env):
         self.setup_templating()
         self._default_base_params = False
 
-        self.agent_host = MalmoPython.AgentHost()
         self.mission_spec = None
-        self.client_pool = None
         self.experiment_id = None
-        
-        self._turn = None
+        self.env = None
         self._rounds = 0
+        self.dry_run = False
 
     def setup_templating(self):
         """
@@ -98,10 +70,6 @@ class MarloEnvBuilderBase(gym.Env):
             ``templates`` folder, and renders it using ``jinja2``.
             This can very well be overriden by ``MarloEnvBuilder`` if required.
         """
-        # Ensure turn_based is true in case of Multi Agent scenarios
-        if len(self.params["agent_names"]) > 1:
-            self.params["turn_based"] = True
-
         template = self.jinj2_env.get_template("mission.xml")
         return template.render(
             params=self.params
@@ -239,8 +207,7 @@ class MarloEnvBuilderBase(gym.Env):
                  tick_length=50,
                  role=0,
                  experiment_id="random_experiment_id",
-                 client_pool = [('127.0.0.1', 10000)],
-                 agent_names = ["MarLo-Agent-0"],
+                 agent_names=["MarLo-Agent-0"],
                  max_retries=30,
                  retry_sleep=3,
                  step_sleep=0.001,
@@ -258,7 +225,7 @@ class MarloEnvBuilderBase(gym.Env):
                  allowContinuousMovement=False,
                  allowDiscreteMovement=False,
                  allowAbsoluteMovement=False,
-                 add_noop_command=True,                 
+                 add_noop_command=False,
                  recordDestination=None,
                  recordObservations=None,
                  recordRewards=None,
@@ -274,7 +241,6 @@ class MarloEnvBuilderBase(gym.Env):
             )
         return self._default_base_params
 
-
     def setup_video(self, params):
         """
             Setups up the Video Requests for an environment.
@@ -285,13 +251,13 @@ class MarloEnvBuilderBase(gym.Env):
         ############################################################
         # Setup Video
         ############################################################
-        if params.videoResolution:
-            if params.videoWithDepth:
-                self.mission_spec.requestVideoWithDepth(
-                    *params.videoResolution
-                    )
-            else:
-                self.mission_spec.requestVideo(*params.videoResolution)
+        # if params.videoResolution:
+        #    if params.videoWithDepth:
+        #       self.mission_spec.requestVideoWithDepth(
+        #            *params.videoResolution
+        #           )
+        #   else:
+        #       self.mission_spec.requestVideo(*params.videoResolution)
 
     def setup_observe_params(self, params):
         """
@@ -303,20 +269,20 @@ class MarloEnvBuilderBase(gym.Env):
         ############################################################
         # Setup observe<>*
         ############################################################
-        if params.observeRecentCommands:
-            self.mission_spec.observeRecentCommands()
-        if params.observeHotBar:
-            self.mission_spec.observeHotBar()
-        if params.observeFullInventory:
-            self.mission_spec.observeFullInventory()
-        if params.observeGrid:
-            self.mission_spec.observeGrid(*(params.observeGrid + ["grid"]))
-        if params.observeDistance:
-            self.mission_spec.observeDistance(
-                *(params.observeDistance + ["dist"])
-                )
-        if params.observeChat:
-            self.mission_spec.observeChat()
+        # if params.observeRecentCommands:
+        #     self.mission_spec.observeRecentCommands()
+        # if params.observeHotBar:
+        #     self.mission_spec.observeHotBar()
+        # if params.observeFullInventory:
+        #     self.mission_spec.observeFullInventory()
+        # if params.observeGrid:
+        #     self.mission_spec.observeGrid(*(params.observeGrid + ["grid"]))
+        # if params.observeDistance:
+        #     self.mission_spec.observeDistance(
+        #         *(params.observeDistance + ["dist"])
+        #         )
+        # if params.observeChat:
+        #     self.mission_spec.observeChat()
 
     def setup_action_commands(self, params):
         """
@@ -328,31 +294,31 @@ class MarloEnvBuilderBase(gym.Env):
         ############################################################
         # Setup Action Commands
         ############################################################
-        if params.allowContinuousMovement or params.allowAbsoluteMovement or \
-                params.allowDiscreteMovement:
-            # Remove all command handlers
-            # self.mission_spec.removeAllCommandHandlers()
-
-            # ContinousMovement commands
-            if isinstance(params.allowContinuousMovement, list):
-                for _command in params.allowContinuousMovement:
-                    self.mission_spec.allowContinuousMovementCommand(_command)
-            elif params.allowContinuousMovement is True:
-                self.mission_spec.allowAllContinuousMovementCommands()
-
-            # AbsoluteMovement commands
-            if isinstance(params.allowAbsoluteMovement, list):
-                for _command in params.allowAbsoluteMovement:
-                    self.mission_spec.allowAbsoluteMovementCommand(_command)
-            elif params.allowAbsoluteMovement is True:
-                self.mission_spec.allowAllAbsoluteMovementCommands()
-
-            # DiscreteMovement commands
-            if isinstance(params.allowDiscreteMovement, list):
-                for _command in params.allowDiscreteMovement:
-                    self.mission_spec.allowDiscreteMovementCommand(_command)
-            elif params.allowDiscreteMovement is True:
-                self.mission_spec.allowAllDiscreteMovementCommands()
+        # if params.allowContinuousMovement or params.allowAbsoluteMovement or \
+        #         params.allowDiscreteMovement:
+        #     # Remove all command handlers
+        #     # self.mission_spec.removeAllCommandHandlers()
+        #
+        #     # ContinousMovement commands
+        #     if isinstance(params.allowContinuousMovement, list):
+        #         for _command in params.allowContinuousMovement:
+        #             self.mission_spec.allowContinuousMovementCommand(_command)
+        #     elif params.allowContinuousMovement is True:
+        #         self.mission_spec.allowAllContinuousMovementCommands()
+        #
+        #     # AbsoluteMovement commands
+        #     if isinstance(params.allowAbsoluteMovement, list):
+        #         for _command in params.allowAbsoluteMovement:
+        #             self.mission_spec.allowAbsoluteMovementCommand(_command)
+        #     elif params.allowAbsoluteMovement is True:
+        #         self.mission_spec.allowAllAbsoluteMovementCommands()
+        #
+        #     # DiscreteMovement commands
+        #     if isinstance(params.allowDiscreteMovement, list):
+        #         for _command in params.allowDiscreteMovement:
+        #             self.mission_spec.allowDiscreteMovementCommand(_command)
+        #     elif params.allowDiscreteMovement is True:
+        #         self.mission_spec.allowAllDiscreteMovementCommands()
 
     def setup_observation_space(self, params):
         """
@@ -364,9 +330,9 @@ class MarloEnvBuilderBase(gym.Env):
         ############################################################
         # Setup Observation Space
         ############################################################
-        self.video_height = self.mission_spec.getVideoHeight(0)
-        self.video_width = self.mission_spec.getVideoWidth(0)
-        self.video_depth = self.mission_spec.getVideoChannels(0)
+        self.video_height = 600
+        self.video_width = 800
+        self.video_depth = 256
         self.observation_space = gym.spaces.Box(
                 low=0, high=255,
                 shape=(self.video_height, self.video_width, self.video_depth),
@@ -393,13 +359,13 @@ class MarloEnvBuilderBase(gym.Env):
         multidiscrete_actions = []
         multidiscrete_action_ranges = []
         if params.add_noop_command:
-            discrete_actions.append("move 0\nturn 0")
+            discrete_actions.append("move 0\nturn 0")  # Does not work with turn key.
 
         mission_xml = str(self.mission_spec)
         i = mission_xml.index("<Mission")
         mission_xml = mission_xml[i:]
         # print(mission_xml)
-        parser = marlo.commands.CommandParser(params.comp_all_commands)
+        parser = malmoenv.commands.CommandParser(params.comp_all_commands)
         commands = parser.get_commands(mission_xml, params.role)
 
         for (command_handler, turnbased, command) in commands:
@@ -481,31 +447,6 @@ class MarloEnvBuilderBase(gym.Env):
         else:
             self.action_space = gym.spaces.Tuple(self.action_space)
 
-    def setup_client_pool(self, params):
-        """
-            Setups up the ``client_pool`` for the current environment.
-            
-            :param params: Marlo Game Parameters as described in :meth:`default_base_params`
-            :type params: dict
-        """
-        ############################################################
-        # Setup Client Pool
-        ############################################################
-        if not params.client_pool:
-            logger.warn("No client pool provided, attempting to create "
-                         "a client_pool of the correct size")
-            number_of_agents = self.mission_spec.getNumberOfAgents()
-            params.client_pool = marlo.launch_clients(number_of_agents)
-            
-        self.client_pool = MalmoPython.ClientPool()
-        for _client in params.client_pool:
-            self.client_pool.add(MalmoPython.ClientInfo(*_client))
-
-        if not isinstance(params.client_pool, list):
-            raise ValueError("params.client_pool must be a list of tuples"
-                             "of (ip_address, port)")
-            
-
     def setup_mission_record(self, params):
         """
             Setups up the ``mission_record`` for the current environment.
@@ -516,25 +457,25 @@ class MarloEnvBuilderBase(gym.Env):
         ############################################################
         # Setup Mission Record
         ############################################################
-        self.mission_record_spec = MalmoPython.MissionRecordSpec() # empty
-        if params.recordDestination:
-            if not params.recordDestination.endswith(".tgz"):
-                raise Exception("Invalid recordDestination provided"
-                                "recordDestination should be a valid path ending"
-                                " with .tgz ")
-            self.mission_record_spec.setDestination(params.recordDestination)
-            if params.recordRewards:
-                self.mission_record_spec.recordRewards()
-            if params.recordCommands:
-                self.mission_record_spec.recordCommands()
-            if params.recordMP4:
-                assert type(params.recordMP4) == list \
-                    and len(params.recordMP4) == 2
-                self.mission_record_spec.recordMP4(*(params.recordMP4))
-        else:
-            if params.recordRewards or params.recordCommands  or params.recordMP4:
-                raise Exception("recordRewards or recordCommands or recordMP4 "
-                                "provided without specifyin recordDestination")
+        # self.mission_record_spec = MalmoPython.MissionRecordSpec() # empty
+        # if params.recordDestination:
+        #     if not params.recordDestination.endswith(".tgz"):
+        #         raise Exception("Invalid recordDestination provided"
+        #                         "recordDestination should be a valid path ending"
+        #                         " with .tgz ")
+        #     self.mission_record_spec.setDestination(params.recordDestination)
+        #     if params.recordRewards:
+        #         self.mission_record_spec.recordRewards()
+        #     if params.recordCommands:
+        #         self.mission_record_spec.recordCommands()
+        #     if params.recordMP4:
+        #         assert type(params.recordMP4) == list \
+        #             and len(params.recordMP4) == 2
+        #         self.mission_record_spec.recordMP4(*(params.recordMP4))
+        # else:
+        #     if params.recordRewards or params.recordCommands  or params.recordMP4:
+        #         raise Exception("recordRewards or recordCommands or recordMP4 "
+        #                         "provided without specifyin recordDestination")
 
     def setup_game_mode(self, params):
         """
@@ -546,17 +487,17 @@ class MarloEnvBuilderBase(gym.Env):
         ############################################################
         # Setup Game Mode
         ############################################################
-        if params.gameMode:
-            if params.gameMode == "spectator":
-                self.mission_spec.setModeToSpectator()
-            elif params.gameMode == "creative":
-                self.mission_spec.setModeToCreative()
-            elif params.gameMode == "survival":
-                logger.info("params.gameMode : Cannot force survival mode.")
-            else:
-                raise Exception("Unknown params.gameMode : {}".format(
-                    params.gameMode
-                ))
+        # if params.gameMode:
+        #     if params.gameMode == "spectator":
+        #         self.mission_spec.setModeToSpectator()
+        #     elif params.gameMode == "creative":
+        #         self.mission_spec.setModeToCreative()
+        #     elif params.gameMode == "survival":
+        #         logger.info("params.gameMode : Cannot force survival mode.")
+        #     else:
+        #         raise Exception("Unknown params.gameMode : {}".format(
+        #             params.gameMode
+        #         ))
 
     def setup_mission_spec(self, params):
         """
@@ -569,7 +510,7 @@ class MarloEnvBuilderBase(gym.Env):
         # Instantiate Mission Spec
         ############################################################
         mission_xml = self.render_mission_spec()
-        self.mission_spec = MalmoPython.MissionSpec(mission_xml, True)
+        self.mission_spec = mission_xml
 
     def setup_turn_based_games(self, params):
         """
@@ -577,9 +518,7 @@ class MarloEnvBuilderBase(gym.Env):
             
             :param params: Marlo Game Parameters as described in :meth:`default_base_params`
             :type params: dict
-        """                        
-        if params.turn_based:
-            self._turn = TurnState()
+        """
 
     def init(self, params, dry_run=False):
         """
@@ -596,10 +535,18 @@ class MarloEnvBuilderBase(gym.Env):
         self.params.update(params)
         self.dry_run = dry_run
         self.build_env(self.params)
-        number_of_agents = self.mission_spec.getNumberOfAgents()
-        mission_xml = self.mission_spec.getAsXML(False)
+        mission_xml = self.mission_spec
+        role = params.get("role", 0)
+        port = 9000
+        print("init role " + str(role))
+        experiment_id = params.get("experiment_id", None)
+        if not experiment_id:
+            experiment_id = str(uuid.uuid4())
+        self.env.init(mission_xml, port, role=role, port2=(port + role), action_space=malmoenv.StringActionSpace(),
+                      exp_uid=experiment_id)
+        number_of_agents = self.env.agent_count
+
         join_tokens = []
-        experiment_id = str(uuid.uuid4())
         for _idx in range(number_of_agents):
             _join_token = {}
             _join_token["role"] = _idx
@@ -621,168 +568,30 @@ class MarloEnvBuilderBase(gym.Env):
         self.setup_action_commands(params)
         self.setup_observation_space(params)
         self.setup_action_space(params)
-        self.setup_client_pool(params)
 
         self.setup_mission_record(params)
         self.setup_game_mode(params)
+        self.env = malmoenv.make()
 
-    def _kill_clients(self, all):
-        if self.params.role == 0 or all:
-            print("Restart Malmo Minecraft clients for experiment " + self.params.experiment_id)
-            for client in self.client_pool.clients:
-                for _ in range(3):
-                    try:
-                        print("Stopping " + str(client) + " ...")
-                        self.agent_host.killClient(client)
-                        break
-                    except MalmoPython.MissionException:
-                        time.sleep(2)
-
-        print("Pause for restarts ....")
-        time.sleep(90 + 30 * len(self.client_pool.clients))
 
     ########################################################################
     # Env interaction functions
     ########################################################################
-
-    def reset(self):
-        for _ in range(self.params.kill_clients_retry + 1):
-            try:
-                return self._reset()
-            except MalmoPython.MissionException:
-                self._kill_clients(True)
         
-    def _reset(self):
-        self._rounds += 1
-        # Kill clients after configured number of rounds.
-        if (self.params.kill_clients_after_num_rounds and
-                self._rounds > self.params.kill_clients_after_num_rounds):
-            self._kill_clients(False)
-            self._rounds = 1
+    def reset(self):
 
-        # If a mission is already running, try to quit it
-        # Note : This assumes that <MissionQuitCommands/> is an allowed
-        # command handler in the mission spec.
-        world_state = self.agent_host.peekWorldState()
-        if world_state.is_mission_running:
-            if not self._turn or self._turn.can_play:
-                self.send_command("quit")
+        image = self.env.reset()
+        self.last_image = image
 
-        if self.params.forceWorldReset:
-            # Force a World Reset on each reset
-            self.mission_spec.forceWorldReset()
+        # Notify Evaluation System, if applicable
+        marlo.CrowdAiNotifier._env_reset()
 
-        # Attempt to start a mission
-        for retry in range(self.params.max_retries + 1):
-            logger.debug("RETRY : {}".format(retry))
-            # Role 0 (the server) could take some extra time to start
-            if self.params.role != 0:
-                time.sleep(1)
-            else:
-                time.sleep(0.1)
-
-            if self.params.experiment_id:
-                self.experiment_id = self.params.experiment_id
-
-            try:
-                if not self.client_pool:
-                    raise Exception("client_pool not specified.")
-                self.agent_host.startMission(
-                    self.mission_spec,
-                    self.client_pool,
-                    self.mission_record_spec,
-                    self.params.role,
-                    self.experiment_id
-                )
-
-                logger.info("Waiting for mission to start...")
-                world_state = self.agent_host.getWorldState()
-                start_time = time.time()
-                while not world_state.has_mission_begun:
-                    time.sleep(0.1)
-                    world_state = self.agent_host.getWorldState()
-                    for error in world_state.errors:
-                        logger.error("Mission start error: " + error.text)
-                    if any(world_state.errors):
-                        raise MalmoPython.MissionException("Error while waiting for mission to start",
-                                                           world_state.errors[0])
-                    if time.time() - start_time > 60:
-                        raise MalmoPython.MissionException("Giving up on mission starting up")
-
-                logger.info("Mission Running")
-                frame = self._get_video_frame(world_state)
-
-                # Notify Evaluation System, if applicable
-                marlo.CrowdAiNotifier._env_reset()
-                
-                return frame
-
-            except Exception as e:
-                traceback.format_exc()
-                if retry == self.params.max_retries:
-                    logger.error("Error Starting Mission : {}".format(
-                        traceback.format_exc()
-                    ))
-                    raise e
-                else:
-                    logger.warn("Error on attempting to start mission : {}"
-                                .format(str(e)))
-                    logger.warn("Will attempt again after {} seconds."
-                                .format(self.params.retry_sleep))
-                    time.sleep(self.params.retry_sleep)
-
-    def _get_world_state(self):
-        # patiently wait till we get the next observation
-        while True:
-            time.sleep(self.params.step_sleep)
-            world_state = self.agent_host.peekWorldState()
-            if world_state.number_of_observations_since_last_state > \
-                    self.params.skip_steps or not world_state.is_mission_running or any(world_state.errors):
-                break
-        return self.agent_host.getWorldState()
-
-    def _get_video_frame(self, world_state):
-        if world_state.number_of_video_frames_since_last_state > 0:
-            assert len(world_state.video_frames) == 1
-            frame = world_state.video_frames[0]
-
-            image = np.frombuffer(frame.pixels, dtype=np.uint8)
-            image = image.reshape((frame.height, frame.width, frame.channels))
-            # print("Frame Received : ".format(image.shape))
-            self.last_image = image
-        else:
-            # can happen only when mission ends before we get frame
-            # then just use the last frame, it doesn't matter much anyway
-            image = self.last_image
         return image
 
-    def _get_observation(self, world_state):
-        if world_state.number_of_observations_since_last_state > 0:
-            missed = world_state.number_of_observations_since_last_state \
-                    - len(world_state.observations) - self.params.skip_steps
-            if missed > 0:
-                logger.info("Agent missed %d observation(s).", missed)
-            assert len(world_state.observations) == 1
-            return json.loads(world_state.observations[0].text)
-        else:
-            return None
-
-    def send_command(self, command):
-        if self._turn:
-            self.agent_host.sendCommand(command, self._turn.key)
-            self._turn.has_payed = True
-        else:
-            logger.debug("Send Command : {}".format(command))
-            self.agent_host.sendCommand(command)
-
-    def _take_action(self, actions):
+    def _get_action_string(self, actions):
         # no tuple in case of a single action
         if len(self.action_spaces) == 1:
             actions = [actions]
-
-        if self._turn:
-            if not self._turn.can_play:
-                return
 
         # send corresponding command
         for _spaces, _commands, _actions in \
@@ -790,82 +599,35 @@ class MarloEnvBuilderBase(gym.Env):
 
             if isinstance(_spaces, gym.spaces.Discrete):
                 logger.debug(_commands[_actions])
-                # print("cmd " + cmds[acts])
-                self.send_command(_commands[_actions])
+                return _commands[_actions]
             elif isinstance(_spaces, gym.spaces.Box):
                 for command, value in zip(_commands, _actions):
                     _command = "{}-{}".format(command, value)
                     logger.debug(_command)
-                    self.send_command(_command)
+                    return _command
             elif isinstance(_spaces, gym.spaces.MultiDiscrete):
                 for command, value in zip(_commands, _actions):
                     _command = "{}-{}".format(command, value)
                     logger.debug(_command)
-                    self.send_command(_command)
+                    return _command
             else:
                 logger.warn("Ignoring unknown action space for {}".format(
                     _commands
-                    ))
+                ))
 
-    def step_wrapper(self, action):
-        world_state = self.agent_host.peekWorldState()
-        if world_state.is_mission_running:
-            self._take_action(action)
+    def _step_wrapper(self, action):
 
-        world_state = self._get_world_state()
-
-        # Update turn state
-        if world_state.number_of_observations_since_last_state > 0:
-            data = json.loads(world_state.observations[-1].text)
-            turn_key = data.get(u'turn_key', None)
-            if turn_key is not None and turn_key != self._turn.key:
-                self._turn.update(turn_key)
-
-        # Log
-        for error in world_state.errors:
-            logger.warn(error.text)
-        for message in world_state.mission_control_messages:
-            logger.debug(message.text)
-            root = ElementTree.fromstring(message.text)
-            if root.tag == '{http://ProjectMalmo.microsoft.com}MissionEnded':
-                for el in root.findall(
-                        '{http://ProjectMalmo.microsoft.com}HumanReadableStatus' # noqa: E501
-                        ):
-                    logger.info("Mission ended: %s", el.text)
-
-        # Compute Rewards
-        reward = 0
-        for _reward in world_state.rewards:
-            reward += _reward.getValue()
-
-        # Get observation
-        image = self._get_video_frame(world_state)
-
-        # detect if done ?
-        done = not world_state.is_mission_running or any(world_state.errors)
-
-        # gather info
-        info = {}
-        info['has_mission_begun'] = world_state.has_mission_begun
-        info['is_mission_running'] = world_state.is_mission_running
-        info['number_of_video_frames_since_last_state'] = world_state.number_of_video_frames_since_last_state # noqa: E501
-        info['number_of_rewards_since_last_state'] = world_state.number_of_rewards_since_last_state # noqa: E501
-        info['number_of_observations_since_last_state'] = world_state.number_of_observations_since_last_state # noqa: E501
-        info['mission_control_messages'] = [msg.text for msg in world_state.mission_control_messages] # noqa: E501
-        info['observation'] = self._get_observation(world_state)
-
-        if self.params.suppress_info:
-            """
-            Clear info variable to not leak in game variables
-            """
-            info = {}
-
+        cmd = self._get_action_string(action)
+        # print("[" + str(self.env.role) + "] cmd [" + cmd + "]")
+        image, reward, done, info = self.env.step(cmd)
+        self.last_image = image
         # Notify evaluation system, if applicable
         # marlo.CrowdAiNotifier._env_action(action)
         marlo.CrowdAiNotifier._step_reward(reward)
         if done:
             marlo.CrowdAiNotifier._episode_done()
 
+        time.sleep(0)  # yield
         return image, reward, done, info
 
     def step(self, action):
@@ -873,7 +635,7 @@ class MarloEnvBuilderBase(gym.Env):
             Helps wrap the actual step function to catch relevant errors
         """
         try:
-            return self.step_wrapper(action)
+            return self._step_wrapper(action)
         except Exception as e:
             marlo.CrowdAiNotifier._env_error(str(e))
             raise e
@@ -889,5 +651,5 @@ class MarloEnvBuilderBase(gym.Env):
                                  .format(mode))
 
     def seed(self, seed=None):
-        self.mission_spec.setWorldSeed(str(seed))
+        # self.mission_spec.setWorldSeed(str(seed))
         return [seed]

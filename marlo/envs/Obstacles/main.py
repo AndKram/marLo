@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import marlo
 from marlo import MarloEnvBuilderBase
-from marlo import MalmoPython
 
 
 import os
@@ -11,26 +10,26 @@ from pathlib import Path
 class MarloEnvBuilder(MarloEnvBuilderBase):
     """
     Description: 
-		The layout of this mission is that of a series of interconnected rooms made out of
-		stone bricks. Various obstacles are placed in and between these rooms, and doors
-		actioned by levers separate them. The agent's goal is to find the gold/diamond/redstone
-		block in one of the rooms.
-		
-	Actions available:
-		Jump
-		Move
-		Pitch
-		Strafe
-		Turn
-		Crouch
-		Use
-		
-	Rewards:
-		2000 points for finding the goal
-		-1000 points for running out of time
-		20 points for finding a gold/diamond/redstone ore
+                The layout of this mission is that of a series of interconnected rooms made out of
+                stone bricks. Various obstacles are placed in and between these rooms, and doors
+                actioned by levers separate them. The agent's goal is to find the gold/diamond/redstone
+                block in one of the rooms.
+                
+        Actions available:
+                Jump
+                Move
+                Pitch
+                Strafe
+                Turn
+                Crouch
+                Use
+                
+        Rewards:
+                2000 points for finding the goal
+                -1000 points for running out of time
+                20 points for finding a gold/diamond/redstone ore
     """
-	   
+           
     def __init__(self, extra_params={}):
         super(MarloEnvBuilder, self).__init__(
                 templates_folder = os.path.join(
@@ -68,5 +67,4 @@ if __name__ == "__main__":
     print(env_builder.params)
     print(env_builder.params.experiment_id)
     mission_xml = env_builder.render_mission_spec()
-    mission_spec = MalmoPython.MissionSpec(mission_xml, True)
-    print(mission_spec.getSummary())
+    mission_spec = mission_xml
