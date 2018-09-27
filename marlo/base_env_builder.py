@@ -9,8 +9,7 @@ import malmoenv.commands
 import uuid
 import hashlib
 import base64
-
-import xml.etree.ElementTree as ElementTree
+from lxml import etree
 
 import traceback
 
@@ -50,6 +49,8 @@ class MarloEnvBuilderBase(gym.Env):
         self.env = None
         self._rounds = 0
         self.dry_run = False
+        self.jinja2_fileloader = None
+        self.jinj2_env = None
 
     def setup_templating(self):
         """
@@ -251,12 +252,14 @@ class MarloEnvBuilderBase(gym.Env):
         ############################################################
         # Setup Video
         ############################################################
-        # if params.videoResolution:
-        #    if params.videoWithDepth:
-        #       self.mission_spec.requestVideoWithDepth(
+        if params.videoResolution:
+            if params.videoWithDepth:
+                pass
+        #      self.mission_spec.requestVideoWithDepth(
         #            *params.videoResolution
         #           )
-        #   else:
+        else:
+            pass
         #       self.mission_spec.requestVideo(*params.videoResolution)
 
     def setup_observe_params(self, params):
@@ -330,9 +333,9 @@ class MarloEnvBuilderBase(gym.Env):
         ############################################################
         # Setup Observation Space
         ############################################################
-        self.video_height = 600
-        self.video_width = 800
-        self.video_depth = 256
+        self.video_height = params.videoResolution[1]
+        self.video_width = params.videoResolution[0]
+        self.video_depth = 4 if params.videoWithDepth else 3
         self.observation_space = gym.spaces.Box(
                 low=0, high=255,
                 shape=(self.video_height, self.video_width, self.video_depth),
@@ -361,7 +364,7 @@ class MarloEnvBuilderBase(gym.Env):
         if params.add_noop_command:
             discrete_actions.append("move 0\nturn 0")  # Does not work with turn key.
 
-        mission_xml = str(self.mission_spec)
+        mission_xml = etree.tostring(self.mission_spec).decode()
         i = mission_xml.index("<Mission")
         mission_xml = mission_xml[i:]
         # print(mission_xml)
@@ -510,7 +513,10 @@ class MarloEnvBuilderBase(gym.Env):
         # Instantiate Mission Spec
         ############################################################
         mission_xml = self.render_mission_spec()
-        self.mission_spec = mission_xml
+        if not mission_xml.startswith('<Mission'):
+            i = mission_xml.index("<Mission")
+            mission_xml = mission_xml[i:]
+        self.mission_spec = etree.fromstring(mission_xml)
 
     def setup_turn_based_games(self, params):
         """
@@ -535,7 +541,7 @@ class MarloEnvBuilderBase(gym.Env):
         self.params.update(params)
         self.dry_run = dry_run
         self.build_env(self.params)
-        mission_xml = self.mission_spec
+        mission_xml = etree.tostring(self.mission_spec).decode()
         role = params.get("role", 0)
         port = 9000
         print("init role " + str(role))
