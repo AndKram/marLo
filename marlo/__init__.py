@@ -6,10 +6,6 @@ import importlib
 from pathlib import Path
 import tempfile
 
-import logging
-logger = logging.getLogger(__name__)
-
-
 from gym.envs.registration import register
 from marlo.base_env_builder import MarloEnvBuilderBase
 # Import Constants
@@ -24,6 +20,9 @@ from .crowdai_helpers import is_grading
 from .crowdai_helpers import evaluator_join_token
 from .crowdai_helpers import CrowdAiNotifier
 from .crowdai_helpers import CrowdAIMarloEvents
+
+import logging
+logger = logging.getLogger(__name__)
 
 ########################################################################
 # Runtime Variables
@@ -47,7 +46,7 @@ register_environments(MARLO_ENV_PATHS)
 ########################################################################
 
 
-def make(env_key, params={}):
+def make(env_key, params=None):
     """Builds a MarLo environment and returns the `join_tokens` for all the 
     agents in the environment.
 
@@ -68,6 +67,8 @@ def make(env_key, params={}):
     ...                              videoResolution = [800, 600]
     ...                           ))
     """
+    if params is None:
+        params = {}
     if Path(env_key).is_file():
         """
             If a real mission file is passed instead
@@ -83,7 +84,7 @@ def make(env_key, params={}):
     return join_tokens
 
 
-def init(join_token, params={}):
+def init(join_token, params=None):
     """
     Use the provided `join_token` to instantiate a MarLo environment for a single 
     agent.
@@ -104,6 +105,8 @@ def init(join_token, params={}):
     >>> env = marlo.init(join_tokens[0])
     >>> frame = env.reset()
     """
+    if params is None:
+        params = {}
     join_token = json.loads(
             base64.b64decode(join_token).decode('utf8')
         )
