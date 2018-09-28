@@ -38,18 +38,18 @@ class MarloEnvBuilderBase(gym.Env):
     metadata = {'render.modes': ['human', 'rgb_array']}
 
     def __init__(self, templates_folder):
+        self.jinja2_fileloader = None
+        self.jinj2_env = None
         super(MarloEnvBuilderBase, self).__init__()
+
         self.templates_folder = templates_folder
         self.setup_templating()
         self._default_base_params = False
-
         self.mission_spec = None
         self.experiment_id = None
         self.env = None
         self._rounds = 0
         self.dry_run = False
-        self.jinja2_fileloader = None
-        self.jinj2_env = None
         self.video_height = 0
         self.video_width = 0
         self.video_depth = 3
