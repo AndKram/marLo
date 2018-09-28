@@ -3,6 +3,7 @@ import json
 import gym
 import numpy as np
 import marlo
+import marlo.xml
 import malmoenv
 import malmoenv.commands
 import uuid
@@ -259,15 +260,12 @@ class MarloEnvBuilderBase(gym.Env):
         ############################################################
         # Setup Video
         ############################################################
+        vid = 'Mission.AgentSection.AgentHandlers.VideoProducer'
         if params.videoResolution:
-            if params.videoWithDepth:
-                pass
-        #      self.mission_spec.requestVideoWithDepth(
-        #            *params.videoResolution
-        #           )
-        else:
-            pass
-        #       self.mission_spec.requestVideo(*params.videoResolution)
+            marlo.xml.put(self.mission_spec, vid + '.Width', params.videoResolution[0])
+            marlo.xml.put(self.mission_spec, vid + '.Height', params.videoResolution[1])
+        if params.videoWithDepth:
+            marlo.xml.put(self.mission_spec, vid, "true", attrib="want_depth")
 
     def setup_observe_params(self, params):
         """
