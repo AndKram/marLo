@@ -59,6 +59,7 @@ class MarloEnvBuilderBase(gym.Env):
         self.action_names = []
         self.action_spaces = []
         self.action_space = None
+        self.port = 9000
 
     def setup_templating(self):
         """
@@ -114,8 +115,8 @@ class MarloEnvBuilderBase(gym.Env):
             :param experiment_id: A unique alphanumeric id for a single game. This is used to validate the session that an agent is joining. (Default : ``random_experiment_id``). 
             :type experiment_id: str
             
-            :param client_pool: A `list` of `tuples` representing the Minecraft client_pool the current agent can try to join. (Default : ``[('127.0.0.1', 10000)]``)
-            :type client_pool: list
+            :param port: The base port for Minecraft connections. Role 0 uses this port and Role N uses port + N.
+            :type port: int
 
             :param agent_names: A `list` of names for the agents that are expected to join the game. This is used by the templating system to add an appropriate number of agents. (Default : ``["MarLo-Agent-0"]``)
             :type client_pool: list
@@ -217,6 +218,7 @@ class MarloEnvBuilderBase(gym.Env):
                  role=0,
                  experiment_id="random_experiment_id",
                  agent_names=["MarLo-Agent-0"],
+                 port=9000,
                  max_retries=30,
                  retry_sleep=3,
                  step_sleep=0.001,
@@ -545,12 +547,11 @@ class MarloEnvBuilderBase(gym.Env):
         self.build_env(self.params)
         mission_xml = etree.tostring(self.mission_spec).decode()
         role = params.get("role", 0)
-        port = 9000
         print("init role " + str(role))
         experiment_id = params.get("experiment_id", None)
         if not experiment_id:
             experiment_id = str(uuid.uuid4())
-        self.env.init(mission_xml, port, role=role, port2=(port + role), action_space=malmoenv.StringActionSpace(),
+        self.env.init(mission_xml, self.port, role=role, port2=(self.port + role), action_space=malmoenv.StringActionSpace(),
                       exp_uid=experiment_id)
         number_of_agents = self.env.agent_count
 
