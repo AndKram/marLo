@@ -10,7 +10,7 @@ import time
 
 
 def main():
-    xml_file = "mission_1.xml"
+    xml_file = "mission.xml"
     parser = argparse.ArgumentParser(description='Multi-agent test')
     parser.add_argument('--rounds', type=int, default=10, help='number of rollouts - default 10')
     parser.add_argument('--mission_file', type=str, default=xml_file, help='the mission xml')
