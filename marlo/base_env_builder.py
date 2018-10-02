@@ -51,8 +51,8 @@ class MarloEnvBuilderBase(gym.Env):
         self.env = None
         self._rounds = 0
         self.dry_run = False
-        self.video_height = 0
-        self.video_width = 0
+        self.video_height = 600
+        self.video_width = 800
         self.video_depth = 3
         self.observation_space = None
         self.last_image = None
@@ -60,6 +60,7 @@ class MarloEnvBuilderBase(gym.Env):
         self.action_spaces = []
         self.action_space = None
         self.port = 9000
+        self.step_sleep = 0
 
     def setup_templating(self):
         """
@@ -160,56 +161,45 @@ class MarloEnvBuilderBase(gym.Env):
             :param observeChat: If the Chat information should be included in the auxillary observation available through ``info['observation']``. (Default: ``False``)
             :type observeChat: bool
             
-            :param continuous_to_discrete: Converts continuous actions to discrete. when allowed continuous actions are 'move' and 'turn', then discrete action space contains 4 actions: move -1, move 1, turn -1, turn 1. (Default : ``True``)
-            :type continuous_to_discrete: bool
+            TODO :param continuous_to_discrete: Converts continuous actions to discrete. when allowed continuous actions are 'move' and 'turn', then discrete action space contains 4 actions: move -1, move 1, turn -1, turn 1. (Default : ``True``)
+            TODO :type continuous_to_discrete: bool
             
-            :param allowContinuousMovement: If all continuous movement commands should be allowed. (Default : ``False``)
-            :type allowContinuousMovement: bool
+            TODO :param allowContinuousMovement: If all continuous movement commands should be allowed. (Default : ``False``)
+            TODO :type allowContinuousMovement: bool
             
-            :param allowDiscreteMovement: If all discrete movement commands should be allowed. (Default : ``False``)
-            :type allowDiscreteMovement: bool
+            TODO :param allowDiscreteMovement: If all discrete movement commands should be allowed. (Default : ``False``)
+            TODO :type allowDiscreteMovement: bool
             
-            :param allowAbsoluteMovement: If all absolute movement commands should be allowed. (Default : ``False``) (**Not Implemented**)
-            :type allowAbsoluteMovement: bool
+            TODO :param allowAbsoluteMovement: If all absolute movement commands should be allowed. (Default : ``False``) (**Not Implemented**)
+            TODO :type allowAbsoluteMovement: bool
             
-            :param add_noop_command: If a ``noop`` (``move 0\\nturn 0``) command should be added to the actions. (Default : ``True``) 
+            :param add_noop_command: If a ``noop`` (``move 0\\nturn 0``) command should be added to the actions. (Default : ``False``)
             :type add_noop_command: bool
+            TODO DOES NOT WORK WITH TURN BASED COMMANDS
             
-            :param recordDestination: Destination where Mission Records should be stored. (Default : ``None``)
-            :type recordDestination: str
+            TODO :param recordDestination: Destination where Mission Records should be stored. (Default : ``None``)
+            TODO :type recordDestination: str
             
-            :param recordObservations: If Observations should be recorded in the ``MissionRecord``s. (Default : ``None``)
-            :type recordObservations: bool
+            TODO :param recordObservations: If Observations should be recorded in the ``MissionRecord``s. (Default : ``None``)
+            TODO :type recordObservations: bool
             
-            :param recordRewards: If Rewards should be recorded in the ``MissionRecord``s. (Default : ``None``)
-            :type recordRewards: bool
+            TODO :param recordRewards: If Rewards should be recorded in the ``MissionRecord``s. (Default : ``None``)
+            TODO :type recordRewards: bool
             
-            :param recordCommands: If Commands (actions) should be recorded in the ``MissionRecord``s. (Default : ``None``)
-            :type recordCommands: bool
+            TODO :param recordCommands: If Commands (actions) should be recorded in the ``MissionRecord``s. (Default : ``None``)
+            TODO :type recordCommands: bool
 
-            :param recordMP4: If a MP4 should be recorded in the ``MissionRecord``, and if so, the specifications as : ``[frame_rate, bit_rate]``.  (Default : ``None``)
-            :type recordMP4: list 
+            TODO :param recordMP4: If a MP4 should be recorded in the ``MissionRecord``, and if so, the specifications as : ``[frame_rate, bit_rate]``.  (Default : ``None``)
+            TODO :type recordMP4: list
 
             :param gameMode: The Minecraft gameMode for this particular game. One of ``['spectator', 'creative', 'survival']``. (Default: ``survival``)
             :type gameMode: str
 
-            :param forceWorldReset: Force world reset on every reset. Makes sense only in case of environments with inherent stochasticity (Default: ``False``)
-            :type forceWorldReset: bool
-            
-            :param turn_based: Specifies if the current game is a turn based game. (Default : ``False``)
-            :type turn_based: bool
+            TODO :param forceWorldReset: Force world reset on every reset. Makes sense only in case of environments with inherent stochasticity (Default: ``False``)
+            TODO :type forceWorldReset: bool
 
             :param comp_all_commands: Specifies the superset of allowed commands in Marlo competition. (Default : ``['move', "turn", "use", "attack"]``)
             :type comp_all_commands: list of strings
-
-            :param suppress_info: Supresses extra game params in the info response. The grader will always have this as ``True``. (Default: ``True``)
-            :type suppress_info: bool
-
-            :param kill_clients_after_num_rounds: Call kill client on reset after given number of resets. (Default : ``250``)
-            :type kill_clients_after_num_rounds: int
-
-            :param kill_clients_retry: Call kill client on mission start failure and retry N times. (Default : ``0``)
-            :type kill_clients_retry: int
         """
         if not self._default_base_params:
             self._default_base_params = dotdict(
@@ -243,12 +233,8 @@ class MarloEnvBuilderBase(gym.Env):
                  recordCommands=None,
                  recordMP4=None,
                  gameMode="survival",
-                 forceWorldReset=True,
-                 turn_based=False,
-                 comp_all_commands=['move', "turn", "use", "attack"],
-                 suppress_info=True,
-                 kill_clients_after_num_rounds=250,
-                 kill_clients_retry=0
+                 forceWorldReset=False,
+                 comp_all_commands=['move', "turn", "use", "attack"]
             )
         return self._default_base_params
 
@@ -279,56 +265,47 @@ class MarloEnvBuilderBase(gym.Env):
         ############################################################
         # Setup observe<>*
         ############################################################
-        # if params.observeRecentCommands:
-        #     self.mission_spec.observeRecentCommands()
-        # if params.observeHotBar:
-        #     self.mission_spec.observeHotBar()
-        # if params.observeFullInventory:
-        #     self.mission_spec.observeFullInventory()
-        # if params.observeGrid:
-        #     self.mission_spec.observeGrid(*(params.observeGrid + ["grid"]))
-        # if params.observeDistance:
-        #     self.mission_spec.observeDistance(
-        #         *(params.observeDistance + ["dist"])
-        #         )
-        # if params.observeChat:
-        #     self.mission_spec.observeChat()
+        if params.observeRecentCommands:
+            marlo.xml.put(self.mission_spec, "Mission.AgentSection.AgentHandlers.ObservationFromRecentCommands", '')
+        if params.observeHotBar:
+            marlo.xml.put(self.mission_spec, "Mission.AgentSection.AgentHandlers.ObservationFromHotBar", '')
+        if params.observeFullInventory:
+            marlo.xml.put(self.mission_spec, "Mission.AgentSection.AgentHandlers.ObservationFromFullInventory", '')
+        if params.observeGrid:
+            self._observe_grid(*(params.observeGrid + ["grid"]))
+        if params.observeDistance:
+            self._observe_distance(
+                 *(params.observeDistance + ["dist"])
+                 )
+        if params.observeChat:
+            marlo.xml.put(self.mission_spec, "Mission.AgentSection.AgentHandlers.ObservationFromChat", '')
 
-    def setup_action_commands(self, params):
-        """
-            Setups up the Action Commands for the current agent interacting with the environment.
-            
-            :param params: Marlo Game Parameters as described in :meth:`default_base_params`
-            :type params: dict
-        """        
-        ############################################################
-        # Setup Action Commands
-        ############################################################
-        # if params.allowContinuousMovement or params.allowAbsoluteMovement or \
-        #         params.allowDiscreteMovement:
-        #     # Remove all command handlers
-        #     # self.mission_spec.removeAllCommandHandlers()
-        #
-        #     # ContinousMovement commands
-        #     if isinstance(params.allowContinuousMovement, list):
-        #         for _command in params.allowContinuousMovement:
-        #             self.mission_spec.allowContinuousMovementCommand(_command)
-        #     elif params.allowContinuousMovement is True:
-        #         self.mission_spec.allowAllContinuousMovementCommands()
-        #
-        #     # AbsoluteMovement commands
-        #     if isinstance(params.allowAbsoluteMovement, list):
-        #         for _command in params.allowAbsoluteMovement:
-        #             self.mission_spec.allowAbsoluteMovementCommand(_command)
-        #     elif params.allowAbsoluteMovement is True:
-        #         self.mission_spec.allowAllAbsoluteMovementCommands()
-        #
-        #     # DiscreteMovement commands
-        #     if isinstance(params.allowDiscreteMovement, list):
-        #         for _command in params.allowDiscreteMovement:
-        #             self.mission_spec.allowDiscreteMovementCommand(_command)
-        #     elif params.allowDiscreteMovement is True:
-        #         self.mission_spec.allowAllDiscreteMovementCommands()
+    def _observe_grid(self, x1, y1, z1, x2, u2, z2, name):
+        tag = "Mission.AgentSection.AgentHandlers.ObservationFromGrid.Grid"
+        marlo.xml.put(self.mission_spec, tag, '')
+        e = marlo.xml.get_sub_element(self.mission_spec, tag)
+        e.arrtib["name"] = name
+        tag = "Mission.AgentSection.AgentHandlers.ObservationFromGrid.Grid.min"
+        marlo.xml.put(self.mission_spec, tag, '')
+        e = marlo.xml.get_sub_element(self.mission_spec, tag)
+        e.arrtib["x"] = x1
+        e.arrtib["y"] = y1
+        e.arrtib["z"] = z1
+        tag = "Mission.AgentSection.AgentHandlers.ObservationFromGrid.Grid.max"
+        marlo.xml.put(self.mission_spec, tag, '')
+        e = marlo.xml.get_sub_element(self.mission_spec, tag)
+        e.arrtib["x"] = x2
+        e.arrtib["y"] = y2
+        e.arrtib["z"] = z2
+
+    def _observe_distance(self, x, y, z, name):
+        tag = "Mission.AgentSection.AgentHandlers.ObservationFromDistance.Marker"
+        marlo.xml.put(self.mission_spec, tag, '')
+        e = marlo.xml.get_sub_element(self.mission_spec, tag)
+        e.arrtib["name"] = name
+        e.arrtib["x"] = x
+        e.arrtib["y"] = y
+        e.arrtib["z"] = z
 
     def setup_observation_space(self, params):
         """
@@ -380,8 +357,6 @@ class MarloEnvBuilderBase(gym.Env):
 
         for (command_handler, turnbased, command) in commands:
             logger.debug("CommandHandler: {} turn based: {} command: {} ".format(command_handler, turnbased, command))
-            if turnbased and not self.params.turn_based:
-                logger.warning("Turn based command not expected in mission XML.")
 
             if command_handler == "ContinuousMovement":
                 if command in ["move", "strafe", "pitch", "turn"]:
@@ -457,13 +432,49 @@ class MarloEnvBuilderBase(gym.Env):
         else:
             self.action_space = gym.spaces.Tuple(self.action_space)
 
-    def setup_mission_record(self, params):
-        """
-            Setups up the ``mission_record`` for the current environment.
-            
-            :param params: Marlo Game Parameters as described in :meth:`default_base_params`
-            :type params: dict
-        """        
+    # def setup_action_commands(self, params):
+    #    """
+    #       Setups up the Action Commands for the current agent interacting with the environment.
+    #
+    #       :param params: Marlo Game Parameters as described in :meth:`default_base_params`
+    #        :type params: dict
+    #   """
+        ############################################################
+        # Setup Action Commands
+        ############################################################
+        # if params.allowContinuousMovement or params.allowAbsoluteMovement or \
+        #         params.allowDiscreteMovement:
+        #     # Remove all command handlers
+        #     # self.mission_spec.removeAllCommandHandlers()
+        #
+        #     # ContinousMovement commands
+        #     if isinstance(params.allowContinuousMovement, list):
+        #         for _command in params.allowContinuousMovement:
+        #             self.mission_spec.allowContinuousMovementCommand(_command)
+        #     elif params.allowContinuousMovement is True:
+        #         self.mission_spec.allowAllContinuousMovementCommands()
+        #
+        #     # AbsoluteMovement commands
+        #     if isinstance(params.allowAbsoluteMovement, list):
+        #         for _command in params.allowAbsoluteMovement:
+        #             self.mission_spec.allowAbsoluteMovementCommand(_command)
+        #     elif params.allowAbsoluteMovement is True:
+        #         self.mission_spec.allowAllAbsoluteMovementCommands()
+        #
+        #     # DiscreteMovement commands
+        #     if isinstance(params.allowDiscreteMovement, list):
+        #         for _command in params.allowDiscreteMovement:
+        #             self.mission_spec.allowDiscreteMovementCommand(_command)
+        #     elif params.allowDiscreteMovement is True:
+        #         self.mission_spec.allowAllDiscreteMovementCommands()
+
+    # def setup_mission_record(self, params):
+    #    """
+    #       Setups up the ``mission_record`` for the current environment.
+    #
+    #       :param params: Marlo Game Parameters as described in :meth:`default_base_params`
+    #       :type params: dict
+    #   """
         ############################################################
         # Setup Mission Record
         ############################################################
@@ -497,17 +508,17 @@ class MarloEnvBuilderBase(gym.Env):
         ############################################################
         # Setup Game Mode
         ############################################################
-        # if params.gameMode:
-        #     if params.gameMode == "spectator":
-        #         self.mission_spec.setModeToSpectator()
-        #     elif params.gameMode == "creative":
-        #         self.mission_spec.setModeToCreative()
-        #     elif params.gameMode == "survival":
-        #         logger.info("params.gameMode : Cannot force survival mode.")
-        #     else:
-        #         raise Exception("Unknown params.gameMode : {}".format(
-        #             params.gameMode
-        #         ))
+        if params.gameMode:
+            if params.gameMode == "spectator":
+                marlo.xml.put(self.mission_spec, "Mission.AgentSection", "Spectator", attrib="mode")
+            elif params.gameMode == "creative":
+                marlo.xml.put(self.mission_spec, "Mission.AgentSection", "Creative", attrib="mode")
+            elif params.gameMode == "survival":
+                logger.info("params.gameMode : Cannot force survival mode.")
+            else:
+                raise Exception("Unknown params.gameMode : {}".format(
+                    params.gameMode
+                ))
 
     def setup_mission_spec(self):
         """
@@ -522,14 +533,6 @@ class MarloEnvBuilderBase(gym.Env):
             mission_xml = mission_xml[i:]
         self.mission_spec = etree.fromstring(mission_xml)
 
-    def setup_turn_based_games(self, params):
-        """
-            Setups up a ``turn_based`` game.
-            
-            :param params: Marlo Game Parameters as described in :meth:`default_base_params`
-            :type params: dict
-        """
-
     def init(self, params, dry_run=False):
         """
             Generates the join tokens for all the agents in a game based on the provided game params.
@@ -543,6 +546,8 @@ class MarloEnvBuilderBase(gym.Env):
             :rtype: list
         """                                
         self.params.update(params)
+        self.port = self.params["port"]
+        self.step_sleep = self.params["step_sleep"]
         self.dry_run = dry_run
         self.build_env(self.params)
         mission_xml = etree.tostring(self.mission_spec).decode()
@@ -571,15 +576,14 @@ class MarloEnvBuilderBase(gym.Env):
 
     def build_env(self, params):
         self.setup_mission_spec()
-        self.setup_turn_based_games(params)
 
         self.setup_video(params)
         self.setup_observe_params(params)
-        self.setup_action_commands(params)
+        # self.setup_action_commands(params) TODO Don't allow override - let the xml dictate the action space.
         self.setup_observation_space(params)
         self.setup_action_space(params)
 
-        self.setup_mission_record(params)
+        # self.setup_mission_record(params) TODO malmoenv's test.py can records every Nth frame.
         self.setup_game_mode(params)
         self.env = malmoenv.make()
 
@@ -635,7 +639,7 @@ class MarloEnvBuilderBase(gym.Env):
         if done:
             marlo.CrowdAiNotifier._episode_done()
 
-        time.sleep(0)  # yield
+        time.sleep(self.step_sleep)  # yield
         return image, reward, done, info
 
     def step(self, action):
@@ -659,5 +663,13 @@ class MarloEnvBuilderBase(gym.Env):
                                  .format(mode))
 
     def seed(self, seed=None):
-        # self.mission_spec.setWorldSeed(str(seed))
+        if seed is None:
+            return
+        e = marlo.xml.get_sub_element(self.mission_spec, "Mission.ServerSection.ServerHandlers.DefaultWorldGenerator")
+        if e is not None:
+            e.attrib["seed"] = str(seed)
+        e = marlo.xml.get_sub_element(self.mission_spec, "Mission.ServerSection.ServerHandlers.FlatWorldGenerator")
+        if e is not None:
+            e.attrib["seed"] = str(seed)
         return [seed]
+

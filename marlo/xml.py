@@ -45,3 +45,17 @@ def get_or_put(elem, path, text=None, attrib=None):
             return e.text
         else:
             return e.attrib[attrib]
+
+
+def get_sub_element(elem, path):
+    """Get a sub element by path or None if not found."""
+    e = elem
+    path2 = path.split('.')
+    p = path2.pop(0)
+    if e.tag != ns + p:
+        raise Exception('Have ' + e.tag + ' expected first element to be: ' + p)
+    for p in path2:
+        e = e.find(ns + p)
+        if e is None:
+            return None
+    return e

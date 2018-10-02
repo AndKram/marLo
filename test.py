@@ -40,6 +40,7 @@ def main():
         print("agent " + str(role))
 
         env = marlo.init(join_token)
+        env.seed(4711)
 
         for r in range(rounds):
             print("reset agent " + str(role) + " for new game " + str(r + 1))
