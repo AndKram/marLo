@@ -6,21 +6,21 @@ ns = '{http://ProjectMalmo.microsoft.com}'
 
 def put(elem, path, text, attrib=None):
     """Put text into given path of element and sub-elements (where path separated by a '.').
-    Optional arg attrib can be used to select the element's attribute by that name.
+    Optional arg attrib can be used to select the element's attribute by that name for put.
     Somewhat modelled on C++ PropertyTree's put."""
     return get_or_put(elem, path, text, attrib)
 
 
 def get(elem, path, attrib=None):
     """Get text from given path of element and sub-elements (where path separated by a '.').
-    Optional arg attrib can be used to select the element's attribute by that name.
-    Somewhat modelled on C++ PropertyTree's put."""
+    Optional arg attrib can be used to select the element's attribute by that name to get.
+    """
     return get_or_put(elem, path, None, attrib)
 
 
 def get_or_put(elem, path, text=None, attrib=None):
     """Get or put text by given path of element and sub-elements (where path separated by a '.').
-    Get if text arg is None else put.
+    Get if text arg is None else put the text value into given path.
     Second optional arg attrib can be used to get from or put into an attribute by attribute name.
     """
     e = elem
