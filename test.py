@@ -14,6 +14,8 @@ def main():
     parser = argparse.ArgumentParser(description='Multi-agent test')
     parser.add_argument('--rounds', type=int, default=10, help='number of rollouts - default 10')
     parser.add_argument('--mission_file', type=str, default=xml_file, help='the mission xml')
+    parser.add_argument('--server', type=str, default="127.0.0.1", help='the mission server')
+    parser.add_argument('--port', type=int, default=10000, help='the mission port')
     args = parser.parse_args()
 
     rounds = args.rounds
@@ -22,9 +24,7 @@ def main():
     xml = etree.parse(xml_file)
     number_of_agents = len(xml.getroot().findall('{http://ProjectMalmo.microsoft.com}AgentSection'))
 
-    client_pool = [('127.0.0.1', 10000 + i) for i in range(number_of_agents)]
-
-    join_tokens = marlo.make(xml_file, params=dict(client_pool=client_pool, turn_based=True,
+    join_tokens = marlo.make(xml_file, params=dict(server=args.server, port=args.port, turn_based=True,
                                                    comp_all_commands=['move', "turn", "use", "attack"],
                                                    kill_clients_after_num_rounds=250))
 

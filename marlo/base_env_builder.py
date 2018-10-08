@@ -60,6 +60,7 @@ class MarloEnvBuilderBase(gym.Env):
         self.action_spaces = []
         self.action_space = None
         self.port = 9000
+        self.server = '127.0.0.1'
         self.step_sleep = 0
 
     def setup_templating(self):
@@ -118,6 +119,9 @@ class MarloEnvBuilderBase(gym.Env):
             
             :param port: The base port for Minecraft connections. Role 0 uses this port and Role N uses port + N.
             :type port: int
+
+            :param server: The server for Minecraft connections.
+            :type server: str
 
             :param agent_names: A `list` of names for the agents that are expected to join the game. This is used by the templating system to add an appropriate number of agents. (Default : ``["MarLo-Agent-0"]``)
             :type client_pool: list
@@ -209,6 +213,7 @@ class MarloEnvBuilderBase(gym.Env):
                  experiment_id="random_experiment_id",
                  agent_names=["MarLo-Agent-0"],
                  port=9000,
+                 server='127.0.0.1',
                  max_retries=30,
                  retry_sleep=3,
                  step_sleep=0.001,
@@ -547,6 +552,7 @@ class MarloEnvBuilderBase(gym.Env):
         """                                
         self.params.update(params)
         self.port = self.params["port"]
+        self.server = self.params["server"]
         self.step_sleep = self.params["step_sleep"]
         self.dry_run = dry_run
         self.build_env(self.params)
