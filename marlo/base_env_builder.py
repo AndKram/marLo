@@ -562,7 +562,8 @@ class MarloEnvBuilderBase(gym.Env):
         experiment_id = params.get("experiment_id", None)
         if not experiment_id:
             experiment_id = str(uuid.uuid4())
-        self.env.init(mission_xml, self.port, role=role, port2=(self.port + role), action_space=malmoenv.StringActionSpace(),
+        self.env.init(mission_xml, self.port, role=role, port2=(self.port + role), server=self.server,
+                      action_space=malmoenv.StringActionSpace(),
                       exp_uid=experiment_id)
         number_of_agents = self.env.agent_count
 
