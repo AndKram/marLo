@@ -331,10 +331,12 @@ class MarloEnvBuilderBase(gym.Env):
                 dtype=np.uint8
                 )
         # Setup a dummy first image
-        self.last_image = np.zeros(
-            (self.video_height, self.video_width, self.video_depth),
-            dtype=np.uint8
-            )
+        self.last_image = np.zeros((self.video_height, self.video_width, self.video_depth), dtype=np.uint8)
+
+    def _reshape_image(self, obs):
+        if len(obs) == 0:
+            return obs
+        return obs.reshape((self.video_height, self.video_width, self.video_depth))
 
     def setup_action_space(self, params):
         """
@@ -601,6 +603,7 @@ class MarloEnvBuilderBase(gym.Env):
     def reset(self):
 
         image = self.env.reset()
+        image = self._reshape_image(image)
         self.last_image = image
 
         # Notify Evaluation System, if applicable
@@ -639,7 +642,9 @@ class MarloEnvBuilderBase(gym.Env):
         cmd = self._get_action_string(action)
         # print("[" + str(self.env.role) + "] cmd [" + cmd + "]")
         image, reward, done, info = self.env.step(cmd)
+        image = self._reshape_image(image)
         self.last_image = image
+
         # Notify evaluation system, if applicable
         # marlo.CrowdAiNotifier._env_action(action)
         marlo.CrowdAiNotifier._step_reward(reward)

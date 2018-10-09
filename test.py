@@ -7,6 +7,7 @@ import argparse
 import traceback
 import sys
 import time
+from PIL import Image
 
 
 def main():
@@ -17,6 +18,7 @@ def main():
     parser.add_argument('--agent_count', type=int, default=None, help='number of agents')
     parser.add_argument('--server', type=str, default="127.0.0.1", help='the mission server')
     parser.add_argument('--port', type=int, default=10000, help='the mission port')
+    parser.add_argument('--saveimagesteps', type=int, default=0, help='save an image every N steps')
     args = parser.parse_args()
 
     rounds = args.rounds
@@ -47,6 +49,7 @@ def main():
         env = marlo.init(join_token)
         env.seed(4711)
 
+        steps = 0
         for r in range(rounds):
             print("reset agent " + str(role) + " for new game " + str(r + 1))
             obs = env.reset()
@@ -54,10 +57,14 @@ def main():
             while not done:
                 action = env.action_space.sample()
                 obs, reward, done, info = env.step(action)
+                steps += 1
                 # print("obs:", obs)
                 # print("reward:", reward)
                 # print("done:", done)
                 # print("info", info)
+                if args.saveimagesteps > 0 and steps % args.saveimagesteps == 0:
+                    img = Image.fromarray(obs)
+                    img.save('image' + str(steps) + '.png')
         env.close()
 
     threads = [Thread(target=run, args=(join_tokens[i], i, rounds)) for i in range(number_of_agents)]
