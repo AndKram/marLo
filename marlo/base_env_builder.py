@@ -331,11 +331,14 @@ class MarloEnvBuilderBase(gym.Env):
                 dtype=np.uint8
                 )
         # Setup a dummy first image
-        self.last_image = np.zeros((self.video_height, self.video_width, self.video_depth), dtype=np.uint8)
+        self.last_image = self._zero_image()
+
+    def _zero_image(self):
+        return np.zeros((self.video_height, self.video_width, self.video_depth), dtype=np.uint8)
 
     def _reshape_image(self, obs):
         if len(obs) == 0:
-            return obs
+            return self._zero_image()
         return obs.reshape((self.video_height, self.video_width, self.video_depth))
 
     def setup_action_space(self, params):

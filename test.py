@@ -17,7 +17,7 @@ def main():
     parser.add_argument('--mission', type=str, default=xml_file, help='the env or mission xml')
     parser.add_argument('--agent_count', type=int, default=None, help='number of agents')
     parser.add_argument('--server', type=str, default="127.0.0.1", help='the mission server')
-    parser.add_argument('--port', type=int, default=10000, help='the mission port')
+    parser.add_argument('--port', type=int, default=9000, help='the mission port')
     parser.add_argument('--saveimagesteps', type=int, default=0, help='save an image every N steps')
     args = parser.parse_args()
 
