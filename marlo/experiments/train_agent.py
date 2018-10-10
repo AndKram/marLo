@@ -8,12 +8,32 @@ from matplotlib.axes._base import _AxesBase
 standard_library.install_aliases()  # NOQA
 
 import logging
-import os
+import sys, os, time
 
 from marlo.experiments.evaluator import Evaluator
 from marlo.experiments.evaluator import save_agent
 from chainerrl.misc.ask_yes_no import ask_yes_no
 from chainerrl.misc.makedirs import makedirs
+
+from datetime import datetime
+from tb_chainer import utils, SummaryWriter
+
+
+# By default all experiment logging is relative to the current directory.
+_log_dir = "."
+
+
+def set_log_base_dir(log_dir):
+    """Change the default directory for experiment logs & results."""
+    global _log_dir
+    if log_dir != '' and not log_dir.endswith('/'):
+        _log_dir = log_dir + '/'
+    else:
+        _log_dir = log_dir
+
+
+def get_log_base_dir():
+    return _log_dir
 
 
 def save_agent_replay_buffer(agent, t, outdir, suffix='', logger=None):
@@ -34,6 +54,13 @@ def train_agent(agent, env, steps, outdir, max_episode_len=None,
                 step_hooks=[], num_resets=10**6, logger=None):
 
     logger = logger or logging.getLogger(__name__)
+
+    # Use time string and agent class name as file name identifiers
+    timestr = time.strftime("%Y%m%d-%H%M%S")
+    agentClassName = agent.__class__.__name__[:10]
+    log_dir = get_log_base_dir()
+    writer = SummaryWriter(log_dir + "tensorboard/tensorBoard_exp_"+timestr+"_"+agentClassName)
+    testLog = open(log_dir + "logging/step_rewardLog_"+timestr+"_"+agentClassName+".txt", "w")
 
     episode_r = 0
     episode_idx = 0
@@ -58,11 +85,15 @@ def train_agent(agent, env, steps, outdir, max_episode_len=None,
             episode_r += r
             episode_len += 1
 
+            testLog.write(str(r) + " ")
+            
             for hook in step_hooks:
                 hook(env, agent, t)
 
             if done or episode_len == max_episode_len or t == steps:
-                agent.stop_episode_and_train(obs, r, done=done)
+                writer.add_scalar('last reward in episode', r, t)
+                testLog.write("\n")
+                agent.stop_episode_and_train(obs, episode_r, done=done)
                 logger.info('outdir:%s step:%s episode:%s R:%s',
                             outdir, t, episode_idx, episode_r)
                 logger.info('statistics:%s', agent.get_statistics())
@@ -78,6 +109,10 @@ def train_agent(agent, env, steps, outdir, max_episode_len=None,
                     print("WARNING ran out of steps. Any background agents will continue to run.")
                 if t == steps or num_resets == 0:
                     break
+                    
+                print("reward for step " + str(t) + "is episode_r = " + str(episode_r))
+                writer.add_scalar('reward', episode_r, t)
+                
                 # Start a new episode
                 episode_r = 0
                 episode_idx += 1
@@ -94,6 +129,9 @@ def train_agent(agent, env, steps, outdir, max_episode_len=None,
 
     # Save the final model
     save_agent(agent, t, outdir, logger, suffix='_finish')
+    
+    writer.close()
+    testLog.close()
 
 
 def train_agent_with_evaluation(agent,
