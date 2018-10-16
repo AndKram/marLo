@@ -8,14 +8,14 @@ def put(elem, path, text, attrib=None):
     """Put text into given path of element and sub-elements (where path separated by a '.').
     Optional arg attrib can be used to select the element's attribute by that name for put.
     Somewhat modelled on C++ PropertyTree's put."""
-    return get_or_put(elem, path, text, attrib)
+    return get_or_put(elem, path, text, attrib=attrib)
 
 
 def get(elem, path, attrib=None):
     """Get text from given path of element and sub-elements (where path separated by a '.').
     Optional arg attrib can be used to select the element's attribute by that name to get.
     """
-    return get_or_put(elem, path, None, attrib)
+    return get_or_put(elem, path, None, attrib=attrib)
 
 
 def get_or_put(elem, path, text=None, attrib=None):

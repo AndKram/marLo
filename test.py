@@ -24,9 +24,13 @@ def main():
     rounds = args.rounds
 
     if args.agent_count is None:
-        xml_file = args.mission
-        xml = etree.parse(xml_file)
-        number_of_agents = len(xml.getroot().findall('{http://ProjectMalmo.microsoft.com}AgentSection'))
+        try:
+            xml_file = args.mission
+            xml = etree.parse(xml_file)
+            number_of_agents = len(xml.getroot().findall('{http://ProjectMalmo.microsoft.com}AgentSection'))
+        except Exception:
+            print("Could not work out agent count. Please use --agent_count N.")
+            exit()
     else:
         number_of_agents = args.agent_count
 

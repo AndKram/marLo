@@ -561,9 +561,21 @@ class MarloEnvBuilderBase(gym.Env):
         self.step_sleep = self.params["step_sleep"]
         self.dry_run = dry_run
         self.build_env(self.params)
-        mission_xml = etree.tostring(self.mission_spec).decode()
+
         role = params.get("role", 0)
         print("init role " + str(role))
+        # Set up VideoProducers.
+        e = self.mission_spec.findall(marlo.xml.ns + "AgentSection")[role]
+        e = e.find(marlo.xml.ns + "AgentHandlers")
+        vp = e.find(marlo.xml.ns + "VideoProducer")
+        if vp is None:
+            vp = etree.Element(marlo.xml.ns + "VideoProducer")
+            e.append(vp)
+        w = vp.find(marlo.xml.ns + "Width")
+        w.text = str(self.video_width)
+        h = vp.find(marlo.xml.ns + "Height")
+        h.text = str(self.video_height)
+        mission_xml = etree.tostring(self.mission_spec).decode()
         experiment_id = params.get("experiment_id", None)
         if not experiment_id:
             experiment_id = str(uuid.uuid4())
