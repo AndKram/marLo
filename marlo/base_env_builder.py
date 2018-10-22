@@ -338,7 +338,7 @@ class MarloEnvBuilderBase(gym.Env):
         return np.zeros((self.video_height, self.video_width, self.video_depth), dtype=np.uint8)
 
     def _reshape_image(self, obs):
-        if len(obs) == 0:
+        if obs is None or len(obs) == 0:
             return self._zero_image()
         return obs.reshape((self.video_height, self.video_width, self.video_depth))
 

@@ -1,6 +1,5 @@
 import marlo
 from marlo import MarloEnvBuilderBase
-from marlo import MalmoPython
 import os
 from pathlib import Path
 
@@ -37,7 +36,7 @@ Game design space size: 1.73E+4
     
     def __init__(self, extra_params=None):
         if extra_params is None:
-            extra_params={}
+            extra_params = {}
         super(MarloEnvBuilder, self).__init__(
                 templates_folder=os.path.join(
                             str(Path(__file__).parent),
@@ -55,6 +54,6 @@ Game design space size: 1.73E+4
 if __name__ == "__main__":
     env_builder = MarloEnvBuilder()
     mission_xml = env_builder.render_mission_spec()
-    mission_spec = MalmoPython.MissionSpec(mission_xml, True)
-    print(mission_spec.getSummary())
+    mission_spec = mission_xml
+
 

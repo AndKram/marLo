@@ -47,6 +47,7 @@ def run_agent(token):
 episodes = 0
 while episodes < args.episodes:
     episodes += 1
+    print("Episode " + str(episodes))
     join_tokens = random.choice(all_join_tokens)
     threads = [run_agent(join_token)[0] for join_token in join_tokens]
     [t.join() for t in threads]
