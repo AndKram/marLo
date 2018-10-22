@@ -1,6 +1,7 @@
 import time
 import json
 import gym
+import gym.spaces
 import numpy as np
 import marlo
 import marlo.xml
@@ -640,12 +641,12 @@ class MarloEnvBuilderBase(gym.Env):
                 return _commands[_actions]
             elif isinstance(_spaces, gym.spaces.Box):
                 for command, value in zip(_commands, _actions):
-                    _command = "{}-{}".format(command, value)
+                    _command = "{} {}".format(command, value)
                     logger.debug(_command)
                     return _command
             elif isinstance(_spaces, gym.spaces.MultiDiscrete):
                 for command, value in zip(_commands, _actions):
-                    _command = "{}-{}".format(command, value)
+                    _command = "{} {}".format(command, value)
                     logger.debug(_command)
                     return _command
             else:
