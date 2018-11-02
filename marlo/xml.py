@@ -59,3 +59,25 @@ def get_sub_element(elem, path):
         if e is None:
             return None
     return e
+
+
+def put_all(elem, path, sub_path, text=None, attrib=None):
+    e = elem
+    path2 = path.split('.')
+    p = path2.pop(0)
+    p_last = path2.pop()
+    if e.tag != ns + p:
+        raise Exception('Have ' + e.tag + ' expected first element to be: ' + p)
+    for p in path2:
+        e2 = e.find(ns + p)
+        if e2 is None:
+            e2 = etree.Element(ns + p)
+            e.append(e2)
+        e = e2
+    children = e.findall(ns + p_last)
+    if children is None:
+        e2 = etree.Element(ns + p)
+        e.append(e2)
+        children = [e2]
+    for child in children:
+        put(child, p_last + '.' + sub_path, text, attrib)

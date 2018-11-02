@@ -254,12 +254,13 @@ class MarloEnvBuilderBase(gym.Env):
         ############################################################
         # Setup Video
         ############################################################
-        vid = 'Mission.AgentSection.AgentHandlers.VideoProducer'
+        agents = 'Mission.AgentSection'
+        vid = 'AgentHandlers.VideoProducer'
         if params.videoResolution:
-            marlo.xml.put(self.mission_spec, vid + '.Width', params.videoResolution[0])
-            marlo.xml.put(self.mission_spec, vid + '.Height', params.videoResolution[1])
+            marlo.xml.put_all(self.mission_spec, agents, vid + '.Width', params.videoResolution[0])
+            marlo.xml.put_all(self.mission_spec, agents, vid + '.Height', params.videoResolution[1])
         if params.videoWithDepth:
-            marlo.xml.put(self.mission_spec, vid, "true", attrib="want_depth")
+            marlo.xml.put_all(self.mission_spec, agents, vid, "true", attrib="want_depth")
 
     def setup_observe_params(self, params):
         """
@@ -271,12 +272,13 @@ class MarloEnvBuilderBase(gym.Env):
         ############################################################
         # Setup observe<>*
         ############################################################
+        agents = 'Mission.AgentSection'
         if params.observeRecentCommands:
-            marlo.xml.put(self.mission_spec, "Mission.AgentSection.AgentHandlers.ObservationFromRecentCommands", '')
+            marlo.xml.put_all(self.mission_spec, agents, "AgentHandlers.ObservationFromRecentCommands", '')
         if params.observeHotBar:
-            marlo.xml.put(self.mission_spec, "Mission.AgentSection.AgentHandlers.ObservationFromHotBar", '')
+            marlo.xml.put_all(self.mission_spec, agents, "AgentHandlers.ObservationFromHotBar", '')
         if params.observeFullInventory:
-            marlo.xml.put(self.mission_spec, "Mission.AgentSection.AgentHandlers.ObservationFromFullInventory", '')
+            marlo.xml.put_all(self.mission_spec, agents, "AgentHandlers.ObservationFromFullInventory", '')
         if params.observeGrid:
             self._observe_grid(*(params.observeGrid + ["grid"]))
         if params.observeDistance:
@@ -284,9 +286,10 @@ class MarloEnvBuilderBase(gym.Env):
                  *(params.observeDistance + ["dist"])
                  )
         if params.observeChat:
-            marlo.xml.put(self.mission_spec, "Mission.AgentSection.AgentHandlers.ObservationFromChat", '')
+            marlo.xml.put_all(self.mission_spec, agents, "AgentHandlers.ObservationFromChat", '')
 
     def _observe_grid(self, x1, y1, z1, x2, u2, z2, name):
+        # TODO works for first agent only
         tag = "Mission.AgentSection.AgentHandlers.ObservationFromGrid.Grid"
         marlo.xml.put(self.mission_spec, tag, '')
         e = marlo.xml.get_sub_element(self.mission_spec, tag)
@@ -305,6 +308,7 @@ class MarloEnvBuilderBase(gym.Env):
         e.arrtib["z"] = z2
 
     def _observe_distance(self, x, y, z, name):
+        # TODO works for first agent only
         tag = "Mission.AgentSection.AgentHandlers.ObservationFromDistance.Marker"
         marlo.xml.put(self.mission_spec, tag, '')
         e = marlo.xml.get_sub_element(self.mission_spec, tag)
@@ -565,18 +569,21 @@ class MarloEnvBuilderBase(gym.Env):
 
         role = params.get("role", 0)
         print("init role " + str(role))
-        # Set up VideoProducers.
-        e = self.mission_spec.findall(marlo.xml.ns + "AgentSection")[role]
-        e = e.find(marlo.xml.ns + "AgentHandlers")
-        vp = e.find(marlo.xml.ns + "VideoProducer")
-        if vp is None:
-            vp = etree.Element(marlo.xml.ns + "VideoProducer")
-            e.append(vp)
-        w = vp.find(marlo.xml.ns + "Width")
-        w.text = str(self.video_width)
-        h = vp.find(marlo.xml.ns + "Height")
-        h.text = str(self.video_height)
+        if False:
+            # Set up VideoProducers.
+            e = self.mission_spec.findall(marlo.xml.ns + "AgentSection")[role]
+            e = e.find(marlo.xml.ns + "AgentHandlers")
+            vp = e.find(marlo.xml.ns + "VideoProducer")
+            if vp is None:
+                vp = etree.Element(marlo.xml.ns + "VideoProducer")
+                e.append(vp)
+            w = vp.find(marlo.xml.ns + "Width")
+            w.text = str(self.video_width)
+            h = vp.find(marlo.xml.ns + "Height")
+            h.text = str(self.video_height)
         mission_xml = etree.tostring(self.mission_spec).decode()
+        print(mission_xml)
+        exit()
         experiment_id = params.get("experiment_id", None)
         if not experiment_id:
             experiment_id = str(uuid.uuid4())
