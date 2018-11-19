@@ -921,3 +921,9 @@ class MarloEnvBuilderBase(gym.Env):
     def seed(self, seed=None):
         self.mission_spec.setWorldSeed(str(seed))
         return [seed]
+
+    def close(self):
+        del self.agent_host
+
+
+
